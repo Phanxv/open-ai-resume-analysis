@@ -1,14 +1,21 @@
-import DragDropFileUpload from './Component/DragDropFileUpload';
-import './App.css';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Login from './Components/Login';
+import Register from './Components/Register';
+import DragDropFileUpload from './Components/DragDropFileUpload';
+import ProtectedRoute from './Components/ProtectedRoute';
 
-function App() {
+const App: React.FC = () => {
   return (
-    <div className="App">
-      <header className="App-header">
-        <DragDropFileUpload/>
-      </header>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/upload" element={<ProtectedRoute><DragDropFileUpload /></ProtectedRoute>} />
+      </Routes>
+    </Router>
   );
-}
+};
 
 export default App;
