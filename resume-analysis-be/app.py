@@ -41,7 +41,7 @@ async def serve_react(path=None):
     return await send_from_directory(app.static_folder, 'index.html')
 '''
 
-@app.route('/register', methods=['POST'])
+@app.route('/auth/register', methods=['POST'])
 async def register():
     data = await request.get_json() 
     username = data.get('username')
@@ -60,7 +60,7 @@ async def register():
     token = await create_token(username)
     return jsonify({"message": "User registered successfully", "token": token}), 201
 
-@app.route('/login', methods=['POST'])
+@app.route('/auth/login', methods=['POST'])
 async def login():
     data = await request.get_json()
     username = data.get('username')
@@ -73,17 +73,50 @@ async def login():
     token = await create_token(username)
     return jsonify({"message": "Login successful", "token": token})
 
-@app.route('/protected', methods=['GET'])
-async def protected():
-    token = request.headers.get('Authorization').split()[1]
-    
+UPLOAD_FOLDER = './uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+@app.route('/api/upload', methods=['POST'])
+async def upload_files():
+    token = request.headers.get('Authorization')
     try:
         data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
-        return jsonify({"message": f"Welcome {data['username']}!"}), 200
     except jwt.ExpiredSignatureError:
-        return jsonify({"message": "Token expired"}), 401
+        return jsonify({"massage": "Token expired please re-login"}), 401
     except jwt.InvalidTokenError:
-        return jsonify({"message": "Invalid token"}), 401
+        return jsonify({"messasge": "Token invalid please do not temper with the token"}), 401
+    # Check if files are in the request
+    username = data['username']
+    files = await request.files  # Await the files data
+
+    # Get the list of uploaded files
+    files_list = files.getlist('files')
+
+    # If no files are selected
+    if len(files_list) == 0:
+        return jsonify({"error": "No files selected"}), 400
+
+    saved_files = []
+    for file in files_list:
+        if file.filename == '':
+            continue  # Skip files with no filename
+
+        # Save each file asynchronously
+        file_directory = os.path.join(UPLOAD_FOLDER, username)
+        os.makedirs(file_directory, exist_ok=True)
+        file_path = os.path.join(file_directory, file.filename)
+        await file.save(file_path)
+        saved_files.append(file_path)
+
+    if not saved_files:
+        return jsonify({"error": "No valid files uploaded"}), 400
+
+    return jsonify({
+        "message": "Files successfully uploaded",
+        "token": token,  # Include the token in the response for debugging or confirmation
+        "files": saved_files
+    }), 200
+
 
 if __name__ == '__main__':
     app.run(port=8000)
