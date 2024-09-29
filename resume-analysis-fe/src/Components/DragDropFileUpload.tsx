@@ -8,7 +8,7 @@ import "./DragDropFileUpload.css"
 const FileUpload: React.FC = () => {
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-
+    const token = sessionStorage.getItem('token');
     const onDrop = useCallback((acceptedFiles: File[]) => {
         setSelectedFiles((prevFiles) => [...prevFiles, ...acceptedFiles]);
     }, []);
@@ -22,9 +22,10 @@ const FileUpload: React.FC = () => {
         });
 
         try {
-            const response = await axios.post('https://httpbin.org/post', formData, {
+            const response = await axios.post('http://localhost:8000/api/upload', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
+                    'Authorization': token
                 },
             });
 

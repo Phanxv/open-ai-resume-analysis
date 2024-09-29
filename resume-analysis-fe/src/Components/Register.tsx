@@ -8,25 +8,31 @@ import {
   Button,
   Typography,
   Avatar,
+  CircularProgress,
+  Link
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     try {
-      const response = await axios.post('http://localhost:8000/register', {
+      const response = await axios.post('http://localhost:8000/auth/register', {
         username,
         password,
       });
-      localStorage.setItem('token', response.data.token);
+      setLoading(false);
+      sessionStorage.setItem('token', response.data.token);
       navigate('/upload');
     } catch (error) {
+      setLoading(false);
       setError('Username already existed');
     }
   };
@@ -38,6 +44,7 @@ const Login: React.FC = () => {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
+        backgroundColor: '#282c34'
       }}
     >
       <Container component="main" maxWidth="sm">
@@ -55,9 +62,12 @@ const Login: React.FC = () => {
           <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
             <LockOutlinedIcon />
           </Avatar>
-          <Typography component="h1" variant="h5">
+          <Typography component="h1" variant="h5" paddingBottom={"10px"} fontWeight={"bold"}>
             Register
           </Typography>
+          {loading && (
+            <CircularProgress size={'32px'}></CircularProgress>
+          )}
           {error && (
             <Typography color="error" variant="body2" sx={{ mt: 2 }}>
               {error}
@@ -94,11 +104,12 @@ const Login: React.FC = () => {
               type="submit"
               fullWidth
               variant="contained"
-              sx={{ mt: 3, mb: 2}}
+              sx={{ mt: 3, mb: 2, padding: "10px", fontWeight: "bold" }}
             >
               Register
             </Button>
           </Box>
+          <Link href='/login' variant='subtitle2'>Already has an account?</Link>
         </Box>
       </Container>
     </Box>

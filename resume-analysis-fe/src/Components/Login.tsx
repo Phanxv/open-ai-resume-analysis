@@ -8,6 +8,7 @@ import {
   Button,
   Typography,
   Avatar,
+  CircularProgress,
   Link
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
@@ -16,18 +17,22 @@ const Login: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true)
     try {
-      const response = await axios.post('http://localhost:8000/login', {
+      const response = await axios.post('http://localhost:8000/auth/login', {
         username,
         password,
       });
-      localStorage.setItem('token', response.data.token);
+      setLoading(false)
+      sessionStorage.setItem('token', response.data.token);
       navigate('/upload');
     } catch (error) {
+      setLoading(false)
       setError('Invalid credentials, please try again');
     }
   };
@@ -39,6 +44,7 @@ const Login: React.FC = () => {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
+        backgroundColor: '#282c34'
       }}
     >
       <Container component="main" maxWidth="sm">
@@ -56,9 +62,12 @@ const Login: React.FC = () => {
           <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
             <LockOutlinedIcon />
           </Avatar>
-          <Typography component="h1" variant="h5">
+          <Typography component="h1" variant="h5" fontWeight={"bold"} paddingBottom={"10px"}>
             Login
           </Typography>
+          {loading && (
+            <CircularProgress size={'32px'}></CircularProgress>
+          )}
           {error && (
             <Typography color="error" variant="body2" sx={{ mt: 2 }}>
               {error}
@@ -95,7 +104,7 @@ const Login: React.FC = () => {
               type="submit"
               fullWidth
               variant="contained"
-              sx={{ mt: 3, mb: 2}}
+              sx={{ mt: 3, mb: 2, padding: "10px", fontWeight: "bold" }}
             >
               Sign In
             </Button>
