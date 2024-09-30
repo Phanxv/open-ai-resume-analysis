@@ -1,0 +1,6 @@
+quart
+quart_cors
+motor
+bcrypt
+jwt
+python-dotenv

@@ -12,8 +12,8 @@ load_dotenv()
 MONGODB_CONNECTION_STRING = os.getenv("MONGODB_CONNECTION_STRING")
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-#app = Quart(__name__, static_folder='./react-frontend/build')
-app = Quart(__name__)
+app = Quart(__name__, static_folder='./react-build')
+#app = Quart(__name__)
 app.config['SECRET_KEY'] = SECRET_KEY
 app = cors(app)
 
@@ -30,7 +30,6 @@ async def create_token(username):
 
 #For serving static
 
-'''
 @app.route('/static/<path:path>')
 async def static_files(path):
     return await send_from_directory(os.path.join(app.static_folder, 'static'), path)
@@ -39,7 +38,6 @@ async def static_files(path):
 @app.route('/<path:path>')
 async def serve_react(path=None):
     return await send_from_directory(app.static_folder, 'index.html')
-'''
 
 @app.route('/auth/register', methods=['POST'])
 async def register():
@@ -113,7 +111,7 @@ async def upload_files():
 
     return jsonify({
         "message": "Files successfully uploaded",
-        "token": token,  # Include the token in the response for debugging or confirmation
+        "token": token,
         "files": saved_files
     }), 200
 
