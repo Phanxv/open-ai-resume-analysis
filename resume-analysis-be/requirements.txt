@@ -2,5 +2,5 @@ quart
 quart_cors
 motor
 bcrypt
-jwt
+pyjwt
 python-dotenv

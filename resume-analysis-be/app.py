@@ -1,11 +1,14 @@
-from quart import Quart, request, jsonify, send_from_directory
+from quart import Quart, request, jsonify, send_from_directory, Response
 from quart_cors import cors
 from motor.motor_asyncio import AsyncIOMotorClient
+from datetime import datetime, timezone, timedelta
+from dotenv import load_dotenv
+from jwt_verification import token_required
+from azure_request import search_index
 import bcrypt
 import jwt
 import os
-from datetime import datetime, timezone, timedelta
-from dotenv import load_dotenv
+import json
 
 load_dotenv()
 
@@ -75,16 +78,11 @@ UPLOAD_FOLDER = './uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route('/api/upload', methods=['POST'])
+@token_required
 async def upload_files():
-    token = request.headers.get('Authorization')
-    try:
-        data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
-    except jwt.ExpiredSignatureError:
-        return jsonify({"massage": "Token expired please re-login"}), 401
-    except jwt.InvalidTokenError:
-        return jsonify({"messasge": "Token invalid please do not temper with the token"}), 401
     # Check if files are in the request
-    username = data['username']
+    username = request.user
+    print(username)
     files = await request.files  # Await the files data
 
     # Get the list of uploaded files
@@ -111,10 +109,30 @@ async def upload_files():
 
     return jsonify({
         "message": "Files successfully uploaded",
-        "token": token,
         "files": saved_files
     }), 200
 
+@app.route('/api/files', methods=['GET'])
+@token_required
+async def get_files():
+    username = request.user
+    pwd = os.path.join(UPLOAD_FOLDER, username)
+    files_list = os.listdir(pwd)
+    return jsonify({'files' : files_list}), 200
+
+@app.route('/api/search', methods=['GET'])
+async def search_candidate():
+    query = request.args.get('query')
+    #query = data.get('query')
+    try:
+        result = search_index(query=query)
+        if len(result) == 0 :
+            return jsonify({"result" : "not found"}), 404
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error', str(e)}), 400
+   
+        
 
 if __name__ == '__main__':
     app.run(port=8000)

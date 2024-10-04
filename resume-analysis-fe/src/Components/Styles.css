@@ -1,0 +1,36 @@
+.App {
+  text-align: left; /* Move content to the left */
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: row; /* Change from column to row for side-by-side layout */
+  align-items: center;
+  justify-content: flex-start; /* Align the component to the left */
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.component-left {
+  flex: 1; /* Adjust the width of the left component */
+  position: sticky; /* Keep it fixed in place */
+  top: 0;
+  height: 100vh; /* Set height to fill the viewport */
+  overflow: auto;
+}
+
+.component-right {
+  flex: 1; /* Adjust the width of the right component */
+  display: none; /* Initially hidden */
+  overflow-y: auto; /* Make the right side scrollable */
+  margin-right: 50px;
+  margin-top: 40px;
+  margin-bottom: 40px;
+}
+
+.component-right.show {
+  display: block; /* Show when state is true */
+  margin-right: 50px;
+}

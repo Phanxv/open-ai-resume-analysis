@@ -104,7 +104,7 @@ const Login: React.FC = () => {
               type="submit"
               fullWidth
               variant="contained"
-              sx={{ mt: 3, mb: 2, padding: "10px", fontWeight: "bold" }}
+              sx={{ mt: 3, mb: 2, padding: "10px", fontWeight: "bold", backgroundColor: "#282c34"}}
             >
               Sign In
             </Button>
