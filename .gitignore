@@ -2,4 +2,4 @@
 node_modules
 uploads
 OneDrive*
-*.ipynb
+.DS_Store
