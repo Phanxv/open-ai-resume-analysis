@@ -4,7 +4,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 from jwt_verification import token_required
-from azure_request import search_index
+from azure_request import search_index, index_pdf
 import bcrypt
 import jwt
 import os
@@ -102,6 +102,7 @@ async def upload_files():
         os.makedirs(file_directory, exist_ok=True)
         file_path = os.path.join(file_directory, file.filename)
         await file.save(file_path)
+        index_pdf(file.filename, file_directory)
         saved_files.append(file_path)
 
     if not saved_files:
@@ -127,7 +128,7 @@ async def search_candidate():
     try:
         result = search_index(query=query)
         if len(result) == 0 :
-            return jsonify({"result" : "not found"}), 404
+            return jsonify({"error" : "Applicant that matches requirement not found"}), 204
         return jsonify(result), 200
     except Exception as e:
         return jsonify({'error', str(e)}), 400

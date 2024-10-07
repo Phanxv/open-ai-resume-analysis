@@ -10,8 +10,11 @@ const SearchField: React.FC = () => {
     //const [responseChunks, setResponseChunks] = useState<any>();
     const [result, setResult] = useState<any[]>()
     const [showCard, setShowCard] = useState<boolean>(false)
+    const [loading, setLoading] = useState<boolean>(false)
+    const [error, setError] = useState<string>()
     const token = sessionStorage.getItem('token');
     const handleSearch = async () => {
+        setError('')
         try {
             const response = await axios.get('http://localhost:8000/api/search?query=' + query, {
                 headers: {
@@ -19,11 +22,19 @@ const SearchField: React.FC = () => {
                     'Authorization': token
                 },
             });
-            setResult(response.data)
-            setShowCard(true)
-            console.log('Search result :', response.data);
+            if (response.status === 200) {
+                setResult(response.data)
+                setShowCard(true)
+                console.log('Search result :', response.data);
+            } else if (response.status === 204) {
+                setError('Candidate that matches the requirement not found')
+                setShowCard(false)
+                console.log('Candidate not found')
+            }
+
         } catch (error) {
             console.error('Search failed:', error);
+            setError('Error occurs while searching index')
         }
         /*
         const response = await fetch('http://localhost:8000/api/search', {
@@ -63,7 +74,7 @@ const SearchField: React.FC = () => {
         <div className="App">
             <header className="App-header">
                 <div className='component-left'>
-                    <Container maxWidth="sm" sx={{ mt: 5, marginTop: 15}}>
+                    <Container maxWidth="sm" sx={{ mt: 5, marginTop: 15 }}>
                         <Box
                             sx={{
                                 display: 'flex',
@@ -95,6 +106,7 @@ const SearchField: React.FC = () => {
                             >
                                 <PersonSearchIcon />
                             </Button>
+                            {error && (<Typography color='error'>{error}</Typography>)}
                         </Box>
                     </Container>
                 </div>

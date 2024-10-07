@@ -34,7 +34,7 @@ openai_client = AzureOpenAI(
 
 azure_search_client = SearchClient(
         endpoint=f"https://{AZURE_SEARCH_SERVICE_NAME}.search.windows.net",
-        index_name="resume-index",
+        index_name=INDEX_NAME,
         credential=AzureKeyCredential(AZURE_SEARCH_API_KEY)
 )
 
@@ -178,9 +178,9 @@ def get_openai_summary_request(full_text_extract):
         "top_p": 0.95,  
         "max_tokens": 1500  
     }   
-    
+
     try:  
-        response = requests.post(AZURE_OPENAI_ENDPOINT+'/openai/deployments/gpt-4o-vision/chat/completions?api-version=2024-02-15-preview', headers=headers, json=payload, timeout=120)  
+        response = requests.post(AZURE_OPENAI_ENDPOINT+'/openai/deployments/gpt-35-turbo-16k/chat/completions?api-version=2023-03-15-preview', headers=headers, json=payload, timeout=120)  
         response.raise_for_status()  
     except requests.RequestException as e:  
         raise SystemExit(f"Failed to make the request. Error: {e}")  
@@ -189,10 +189,16 @@ def get_openai_summary_request(full_text_extract):
     
     return response
 
+def respone_extraction(response: requests.Response):
+    response_json = response.json()
+    response_json_dump = json.dumps(response_json, indent=2)
+    extracted_data = json.loads(response_json_dump)["choices"][0]["message"]["content"]
+    return extracted_data
+
 def index_pdf(file_name, folder_path):
     file_path = os.path.join(folder_path, file_name)
     full_text_extract = extract_pdf_content(file_path, form_recognizer_client, False)
-    summary_text = get_openai_summary_request(full_text_extract)
+    summary_text = respone_extraction(get_openai_summary_request(full_text_extract))
     search_client = SearchClient(
         endpoint=f"https://{AZURE_SEARCH_SERVICE_NAME}.search.windows.net",
         index_name=INDEX_NAME,
