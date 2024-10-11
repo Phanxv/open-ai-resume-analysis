@@ -1,4 +1,4 @@
-from quart import Quart, request, jsonify, send_from_directory, Response
+from quart import Quart, request, jsonify, send_from_directory, send_file
 from quart_cors import cors
 from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime, timezone, timedelta
@@ -9,6 +9,7 @@ import bcrypt
 import jwt
 import os
 import json
+from bson import ObjectId 
 
 load_dotenv()
 
@@ -23,6 +24,7 @@ app = cors(app)
 client = AsyncIOMotorClient(MONGODB_CONNECTION_STRING)
 db = client["resume-analysis-db"]
 users_collection = db["Users"]
+resumes_collection = db["Resumes"]
 
 async def create_token(username):
     token = jwt.encode({
@@ -87,7 +89,7 @@ async def upload_files():
 
     # Get the list of uploaded files
     files_list = files.getlist('files')
-
+    print(files_list)
     # If no files are selected
     if len(files_list) == 0:
         return jsonify({"error": "No files selected"}), 400
@@ -101,32 +103,51 @@ async def upload_files():
         file_directory = os.path.join(UPLOAD_FOLDER, username)
         os.makedirs(file_directory, exist_ok=True)
         file_path = os.path.join(file_directory, file.filename)
-        await file.save(file_path)
-        index_pdf(file.filename, file_directory)
-        saved_files.append(file_path)
-
-    if not saved_files:
-        return jsonify({"error": "No valid files uploaded"}), 400
+        if(not os.path.exists(file_path)):
+            await file.save(file_path)
+            index = index_pdf(file.filename, file_directory, username)
+            await resumes_collection.insert_one(index)
+            saved_files.append(file_path)
 
     return jsonify({
         "message": "Files successfully uploaded",
         "files": saved_files
     }), 200
 
-@app.route('/api/files', methods=['GET'])
+@app.route('/api/resumes', methods=['GET'])
 @token_required
-async def get_files():
+async def get_resumes():
     username = request.user
-    pwd = os.path.join(UPLOAD_FOLDER, username)
-    files_list = os.listdir(pwd)
-    return jsonify({'files' : files_list}), 200
+    resumes = resumes_collection.find({"owner": username})
+    resumes_list = await resumes.to_list(length=None)
+    print(resumes_list)
+    for resume in resumes_list:
+        if '_id' in resume:
+            resume['_id'] = str(resume['_id'])
+    return jsonify(resumes_list), 200
+
+@app.route('/file/resume', methods=['GET'])
+@token_required
+def get_file():
+    username = request.user
+    file_name = request.args.get('filename')
+    file_path = os.path.join(UPLOAD_FOLDER, username, file_name)
+    print(file_path)
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'file not found'}), 404
+    
+    return send_file(file_path)
+    
 
 @app.route('/api/search', methods=['GET'])
+@token_required
 async def search_candidate():
+    username = request.user
     query = request.args.get('query')
+    lang = request.args.get('lang')
     #query = data.get('query')
     try:
-        result = search_index(query=query)
+        result = search_index(query=query, owner=username, language=lang)
         if len(result) == 0 :
             return jsonify({"error" : "Applicant that matches requirement not found"}), 204
         return jsonify(result), 200

@@ -1,0 +1,48 @@
+/* General styles */
+body,
+html,
+#root {
+  height: 100%;
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+/* Navbar */
+.navbar {
+  position: sticky;
+  top: 0;
+}
+
+/* Initial view with centered search container */
+.search-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+/* View after search result is found */
+.content-container {
+  display: flex;
+  height: calc(100vh - 50px); /* Adjust height based on navbar height */
+}
+
+.results-right {
+  overflow-y: auto;
+}
+
+.results-right::-webkit-scrollbar {
+  width: 10px;
+}
+
+.results-right::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.results-right::-webkit-scrollbar-thumb {
+  background: #888;
+}
+
+.results-right::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

@@ -45,7 +45,7 @@ const Navbar = () => {
                 >
                     <MenuItem onClick={() => {handleMenuClick('/upload')}}>Upload Resume</MenuItem>
                     <MenuItem onClick={() => {handleMenuClick('/search')}}>Search Candidate</MenuItem>
-                    <MenuItem onClick={() => {handleMenuClick('/')}}>PLACE HOLDER</MenuItem>
+                    <MenuItem onClick={() => {handleMenuClick('/files')}}>Resumes</MenuItem>
                 </Menu>
                 <Button variant="contained" sx={{ color: "#fefefe", fontWeight: "bold", backgroundColor: "#282c34" }} onClick={handleLogout}>Logout</Button>
             </Toolbar>

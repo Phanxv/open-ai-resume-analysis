@@ -1,40 +1,42 @@
 import React, { useState } from 'react';
-import { TextField, Button, Box, Typography, Container } from '@mui/material';
+import { TextField, Button, Box, Typography, Container, LinearProgress } from '@mui/material';
 import PersonSearchIcon from '@mui/icons-material/PersonSearch';
-import "./Styles.css"
+import "./SearchComponentStyle.css"
 import ResultCard from './ResultCard';
+import LanguageSelection from './LanguageSelection';
 import axios from 'axios';
 
 const SearchField: React.FC = () => {
     const [query, setQuery] = useState<string>('');
     //const [responseChunks, setResponseChunks] = useState<any>();
     const [result, setResult] = useState<any[]>()
-    const [showCard, setShowCard] = useState<boolean>(false)
     const [loading, setLoading] = useState<boolean>(false)
     const [error, setError] = useState<string>()
+    const [language, setLanguage] = useState<string>('')
     const token = sessionStorage.getItem('token');
+    console.log(language)
     const handleSearch = async () => {
         setError('')
+        setLoading(true)
         try {
-            const response = await axios.get('http://localhost:8000/api/search?query=' + query, {
+            const response = await axios.get('http://localhost:8000/api/search?query=' + query + '&lang=' + language, {
                 headers: {
-                    'Content-Type': 'multipart/form-data',
                     'Authorization': token
                 },
             });
             if (response.status === 200) {
                 setResult(response.data)
-                setShowCard(true)
                 console.log('Search result :', response.data);
             } else if (response.status === 204) {
                 setError('Candidate that matches the requirement not found')
-                setShowCard(false)
                 console.log('Candidate not found')
             }
 
         } catch (error) {
             console.error('Search failed:', error);
             setError('Error occurs while searching index')
+        } finally {
+            setLoading(false)
         }
         /*
         const response = await fetch('http://localhost:8000/api/search', {
@@ -71,59 +73,79 @@ const SearchField: React.FC = () => {
     };
 
     return (
-        <div className="App">
-            <header className="App-header">
-                <div className='component-left'>
-                    <Container maxWidth="sm" sx={{ mt: 5, marginTop: 15 }}>
-                        <Box
-                            sx={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 2,
-                                p: 3,
-                                boxShadow: 3,
-                                borderRadius: 2,
-                                backgroundColor: 'white'
-                            }}
+        <Box className="app-container" sx={{ pt: '64px', backgroundColor: '#282c34' }}>
+            {!result ? (
+                // Initial view with centered search container
+                <Container className="search-container" maxWidth="sm">
+                    <Box sx={{ width: '100%', textAlign: 'left', padding: 2, border: '1px #000', backgroundColor: 'white', borderRadius: 2 }}>
+                        <Typography variant="h5" component="div" color='#282c34' fontWeight={"Bold"} gutterBottom>
+                            Candidate Search
+                        </Typography>
+                        <TextField
+                            fullWidth
+                            label="Enter job requirement to search for candidate"
+                            variant="outlined"
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            multiline
+                            rows={7}
+                            sx={{ marginBottom: 2 }}
+                        />
+                        <LanguageSelection language={language} setLanguage={setLanguage}></LanguageSelection>
+                        {error && <Typography color='error' sx={{ pb: 2 }}>{error}</Typography>}
+                        <Button
+                            fullWidth
+                            variant="contained"
+                            onClick={handleSearch}
+                            disabled={loading}
                         >
+                            <PersonSearchIcon />
+                        </Button>
+                        {loading && <LinearProgress sx={{ marginTop: 2 }} />}
+                    </Box>
+                </Container>
+            ) : (
+                // View with search results, divided screen
+                <Box className="content-container" sx={{ display: 'flex', height: 'calc(100vh - 50px)' }}>
+                    <Box className="search-left" sx={{ flex: 1, padding: 2, position: 'sticky', top: '0' }}>
+                        <Box className="search-box" sx={{ textAlign: 'left', padding: 2, border: '1px #000', backgroundColor: 'white', borderRadius: 2 }}>
                             <Typography variant="h5" component="div" color='#282c34' fontWeight={"Bold"} gutterBottom>
                                 Candidate Search
                             </Typography>
                             <TextField
-                                label="Enter job requirement"
+                                fullWidth
+                                label="Enter job requirement to search for candidate"
                                 variant="outlined"
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
-                                fullWidth
                                 multiline
-                                rows={5}
+                                rows={7}
+                                sx={{ marginBottom: 2 }}
                             />
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                onClick={handleSearch}
-                                sx={{ mt: 2 }}
-                            >
+                            <LanguageSelection language={language} setLanguage={setLanguage}></LanguageSelection>
+                            {error && <Typography color='error'>{error}</Typography>}
+                            <Button fullWidth variant="contained" onClick={handleSearch}>
                                 <PersonSearchIcon />
                             </Button>
-                            {error && (<Typography color='error'>{error}</Typography>)}
+                            {loading && <LinearProgress sx={{ marginTop: 2 }} />}
                         </Box>
-                    </Container>
-                </div>
-                {result && (
-                    <div className={`component-right ${showCard ? 'show' : ''}`}>
-                        {result.map((item, index) => (
-                            <ResultCard
-                                key={index}
-                                score={item.score}
-                                name={item.name}
-                                summary={item.summary}
-                            />
-                        ))}
-                    </div>
-                )}
-            </header>
-        </div>
+                    </Box>
+                    <Box className="results-right" sx={{ flex: 1, pr: 2, overflowY: 'auto' }}>
+                        {result.sort((a, b) => b.score - a.score)
+                            .map((item, index) => (
+                                <ResultCard
+                                    id={item.id}
+                                    key={index}
+                                    score={item.score}
+                                    name={item.name}
+                                    file_name={item.file_name}
+                                    summary={item.summary}
+                                />
+                            ))}
+                    </Box>
+                </Box>
+            )}
+        </Box>
     );
 };
 
