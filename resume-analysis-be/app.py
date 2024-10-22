@@ -145,7 +145,9 @@ async def search_candidate():
     username = request.user
     query = request.args.get('query')
     lang = request.args.get('lang')
-    #query = data.get('query')
+    if not lang :
+        lang = 'english'
+
     try:
         result = search_index(query=query, owner=username, language=lang)
         if len(result) == 0 :

@@ -1,17 +1,13 @@
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.formrecognizer import DocumentAnalysisClient
 from azure.search.documents import SearchClient
-from azure.search.documents.indexes import SearchIndexClient
-from azure.search.documents.indexes.models import ComplexField,SearchableField, SimpleField, SearchIndex
-import base64
 import os
 from dotenv import load_dotenv
-from openai import AzureOpenAI
 import requests
 import json
-import string
+import string 
 import random
-import html
+import data_utils
 
 load_dotenv()
 
@@ -32,89 +28,9 @@ azure_search_client = SearchClient(
         credential=AzureKeyCredential(AZURE_SEARCH_API_KEY)
 )
 
-PDF_HEADERS = {
-    "title": "h1",
-    "sectionHeading": "h2"
-}
-
 document_intelligence_endpoint = AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT
 document_intelligence_credential = AzureKeyCredential(AZURE_DOCUMENT_INTELLIGENCE_KEY)
-
 form_recognizer_client = DocumentAnalysisClient(document_intelligence_endpoint, document_intelligence_credential)
-def table_to_html(table):
-    table_html = "<table>"
-    rows = [sorted([cell for cell in table.cells if cell.row_index == i], key=lambda cell: cell.column_index) for i in range(table.row_count)]
-    for row_cells in rows:
-        table_html += "<tr>"
-        for cell in row_cells:
-            tag = "th" if (cell.kind == "columnHeader" or cell.kind == "rowHeader") else "td"
-            cell_spans = ""
-            if cell.column_span > 1: cell_spans += f" colSpan={cell.column_span}"
-            if cell.row_span > 1: cell_spans += f" rowSpan={cell.row_span}"
-            table_html += f"<{tag}{cell_spans}>{html.escape(cell.content)}</{tag}>"
-        table_html +="</tr>"
-    table_html += "</table>"
-    return table_html
-
-def extract_pdf_content(file_path, form_recognizer_client, use_layout=False): 
-    offset = 0
-    page_map = []
-    model = "prebuilt-layout" if use_layout else "prebuilt-read"
-    with open(file_path, "rb") as f:
-        poller = form_recognizer_client.begin_analyze_document(model, document = f)
-    form_recognizer_results = poller.result()
-    # (if using layout) mark all the positions of headers
-    roles_start = {}
-    roles_end = {}
-    for paragraph in form_recognizer_results.paragraphs:
-        if paragraph.role!=None:
-            para_start = paragraph.spans[0].offset
-            para_end = paragraph.spans[0].offset + paragraph.spans[0].length
-            roles_start[para_start] = paragraph.role
-            roles_end[para_end] = paragraph.role
-
-    for page_num, page in enumerate(form_recognizer_results.pages):
-        tables_on_page = [table for table in form_recognizer_results.tables if table.bounding_regions[0].page_number == page_num + 1]
-
-        # (if using layout) mark all positions of the table spans in the page
-        page_offset = page.spans[0].offset
-        page_length = page.spans[0].length
-        table_chars = [-1]*page_length
-        for table_id, table in enumerate(tables_on_page):
-            for span in table.spans:
-                # replace all table spans with "table_id" in table_chars array
-                for i in range(span.length):
-                    idx = span.offset - page_offset + i
-                    if idx >=0 and idx < page_length:
-                        table_chars[idx] = table_id
-
-        # build page text by replacing charcters in table spans with table html and replace the characters corresponding to headers with html headers, if using layout
-        page_text = ""
-        added_tables = set()
-        for idx, table_id in enumerate(table_chars):
-            if table_id == -1:
-                position = page_offset + idx
-                if position in roles_start.keys():
-                    role = roles_start[position]
-                    if role in PDF_HEADERS:
-                        page_text += f"<{PDF_HEADERS[role]}>"
-                if position in roles_end.keys():
-                    role = roles_end[position]
-                    if role in PDF_HEADERS:
-                        page_text += f"</{PDF_HEADERS[role]}>"
-
-                page_text += form_recognizer_results.content[page_offset + idx]
-                
-            elif not table_id in added_tables:
-                page_text += table_to_html(tables_on_page[table_id])
-                added_tables.add(table_id)
-
-        page_text += " "
-        page_map.append((page_num, offset, page_text))
-        offset += len(page_text)
-
-    full_text = "".join([page_text for _, _, page_text in page_map])
-    return full_text
 
 def get_random_generated_name():
     header = {
@@ -158,8 +74,10 @@ def get_openai_summary_request(full_content, mode='KEYWORD_EXTRACTION', language
     elif mode == 'OUTPUT_SUMMARY':
         system_prompt = f"""You are HR department assistant you job is to help validate wheter or not this applicant qualify for the job position or not 
                 based on this qualification or requirement : {requirement}
-                then return the result in the form of json object with 3 keys 1. 'evaluation' containing evaluation process in a form of plain text, 
-                2. 'conclusion' containing the conclusion of the evaluation 3. 'verdict' containing the result of the evaluation. return all value in every key in {language} language"""
+                then return the result in the form of json object with 4 keys 1. 'evaluation' containing evaluation process in a form of plain text, 
+                2. 'conclusion' containing the conclusion of the evaluation 3. 'verdict' containing the result of the evaluation. 
+                4. 'rating' containing a rating score of this applicant on the scale of 1 to 10 the more requirement this applicant met the higher the score
+                return all value in every key in {language} language"""
     
     headers = {  
         "Content-Type": "application/json",  
@@ -206,7 +124,7 @@ def respone_extraction(response: requests.Response):
 
 def index_pdf(file_name, folder_path, owner):
     file_path = os.path.join(folder_path, file_name)
-    full_text_extract = extract_pdf_content(file_path, form_recognizer_client, False)
+    full_text_extract = data_utils.extract_pdf_content(file_path, form_recognizer_client, False)
     summary_text = respone_extraction(get_openai_summary_request(full_text_extract))
     search_client = SearchClient(
         endpoint=f"https://{AZURE_SEARCH_SERVICE_NAME}.search.windows.net",
@@ -214,9 +132,12 @@ def index_pdf(file_name, folder_path, owner):
         credential=AzureKeyCredential(AZURE_SEARCH_API_KEY)
     )
     name = get_random_generated_name()
-    # Create a document to index (adjust fields as per your index definition)
+    try :
+        id = int(file_name)
+    except :
+        id = ''.join(random.choice(string.ascii_uppercase + string.digits) for i in range(8))
     document = {
-        "id": str(file_name[:-4]),
+        "id": str(id),
         "name": str(name),
         "owner": str(owner),
         "content": str(full_text_extract),
