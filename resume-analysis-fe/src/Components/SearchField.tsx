@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TextField, Button, Box, Typography, Container, LinearProgress } from '@mui/material';
 import PersonSearchIcon from '@mui/icons-material/PersonSearch';
 import "./SearchComponentStyle.css"
@@ -6,15 +6,44 @@ import ResultCard from './ResultCard';
 import LanguageSelection from './LanguageSelection';
 import axios from 'axios';
 
+interface DataItem {
+    file_name: string;
+    content: string;
+    id: string;
+    score: number;
+    name: string;
+    summary: string; // This will hold the JSON string
+  }
+  
+  interface Summary {
+    evaluation: string;
+    conclusion: string;
+    verdict: string;
+    rating: number;
+  }
+
 const SearchField: React.FC = () => {
     const [query, setQuery] = useState<string>('');
     //const [responseChunks, setResponseChunks] = useState<any>();
-    const [result, setResult] = useState<any[]>()
+    const [result, setResult] = useState<DataItem[]>()
+    const [sortedData, setSortedData] = useState<DataItem[]>([]);
     const [loading, setLoading] = useState<boolean>(false)
     const [error, setError] = useState<string>()
     const [language, setLanguage] = useState<string>('')
     const token = sessionStorage.getItem('token');
-    console.log(language)
+
+    useEffect(() => {
+        if (!result) {return}
+        const sorted = result.sort((a, b) => {
+          // Parse summary string into an object
+          const ratingA = (JSON.parse(a.summary.replace(/```json\s*/g, '').replace(/\s*```/g, '')) as Summary).rating;
+          const ratingB = (JSON.parse(b.summary.replace(/```json\s*/g, '').replace(/\s*```/g, '')) as Summary).rating;
+          return ratingB - ratingA; // Sort in descending order
+        });
+    
+        setSortedData(sorted);
+      }, [result]);
+
     const handleSearch = async () => {
         setError('')
         setLoading(true)
@@ -131,7 +160,8 @@ const SearchField: React.FC = () => {
                         </Box>
                     </Box>
                     <Box className="results-right" sx={{ flex: 1, pr: 2, overflowY: 'auto' }}>
-                        {result.sort((a, b) => b.score - a.score)
+                        {
+                        sortedData
                             .map((item, index) => (
                                 <ResultCard
                                     id={item.id}

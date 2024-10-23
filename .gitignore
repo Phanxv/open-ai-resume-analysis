@@ -4,3 +4,4 @@ uploads
 OneDrive*
 .DS_Store
 *.pdf
+*.pyc

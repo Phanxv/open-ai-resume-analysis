@@ -9,11 +9,11 @@ import FileOpenIcon from '@mui/icons-material/FileOpenOutlined';
 import axios from 'axios';
 
 interface CandidateProps {
-  name: string,
-  id: string,
-  summary: string,
-  score: string
-  file_name: string
+  name: string;
+  id: string;
+  summary: string;
+  score: number;
+  file_name: string;
 }
 
 const ResultCard = (props: CandidateProps) => {
@@ -51,11 +51,6 @@ const ResultCard = (props: CandidateProps) => {
           </Typography>
           <Button onClick={() => {handleOpenFile(props.file_name)}}><FileOpenIcon /></Button>
         </Box>
-        <Typography sx={{ color: 'text.secondary', mb: 1.0 }}>Score</Typography>
-        <Typography variant="body2" sx={{ mb: 1}}>
-          {props.score}
-          <br />
-        </Typography>
         <Typography sx={{ color: 'text.secondary', mb: 1.0 }}>Summary</Typography>
         <Typography sx={{ fontWeight: 'bold', mb: 0.5 }}>Conclusion</Typography>
         <Typography variant="body2" sx={{ mb: 1}}>

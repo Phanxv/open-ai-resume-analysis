@@ -4,8 +4,10 @@ import { Box, Button, Container, Typography, List, ListItem, CircularProgress } 
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import axios from 'axios';
 import "./CenterComponentStyle.css"
+import { useNavigate } from 'react-router-dom';
 
 const FileUpload: React.FC = () => {
+    const navigate = useNavigate()
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
     const [loading, setLoading] = useState<boolean>(false)
@@ -111,6 +113,28 @@ const FileUpload: React.FC = () => {
                         >
                             Upload index
                         </Button>
+                    )}
+                    {uploadedFiles.length > 0 && (
+                        <>
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                onClick={() => {navigate('/files')}}
+                                disabled={loading}
+                                sx={{ mt: 2 }}
+                            >
+                                View uploaded resumes
+                            </Button>
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                onClick={() => {navigate('/search')}}
+                                disabled={loading}
+                                sx={{ mt: 2, ml: 2 }}
+                            >
+                                Search for candidate
+                            </Button>
+                        </>
                     )}
                     {error && (
                         <Typography color='error' marginTop={"10px"}>{error}</Typography>
