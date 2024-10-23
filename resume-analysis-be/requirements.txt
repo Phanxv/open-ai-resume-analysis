@@ -4,3 +4,6 @@ motor
 bcrypt
 pyjwt
 python-dotenv
+azure-core
+azure-ai-formrecognizer
+azure-search-documents
